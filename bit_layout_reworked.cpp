@@ -1,4 +1,10 @@
 
+
+enum px_fmts {
+	YUV420P888 = 0x01
+};
+
+
 struct FV1_HEADER {
 	// FV1 special number
 	/* 
@@ -17,6 +23,9 @@ struct FV1_HEADER {
 	// if this number is zero, frames will be seen as a stream
 	unsigned long long frames[2];
 	
+	// amount of pixels
+	unsigned long long px_x;
+	unsigned long long px_y;
 
 	// divide this value by thousand to get the actual fps. actual fps will range from 0.001 upwards
 	// special values (might be removed later): 

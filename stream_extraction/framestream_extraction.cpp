@@ -7,13 +7,40 @@ struct fs_ex_block
 	unsigned char t1, t2;
 };
 
+
+// in development 1 by 1 frame extractor, for when it's needed (it probably won't be needed so i probably won't finish this)
+class frame_extractor {
+public:
+	fs_ex_block current_frames;
+	void get_next_2_frames(){
+
+	}
+	void set_framestream_data(void *data){
+
+	}
+private:
+	unsigned long long pos = 0;
+	void *data; 
+
+
+};
+
+
+
+
 std::vector<fs_ex_block> extract_framestream(void *data, unsigned long long len)
 {
 	std::vector<fs_ex_block> output_data;
 
+	// if filesize is known, use this
 	if (len != 0)
 	{
+
 	}
+
+
+
+	// treat like a stream with an unkown size 
 
 	bool end_of_stream = false;
 
