@@ -1,4 +1,5 @@
-
+#ifndef bit_layout_reworked
+#define bit_layout_reworked
 
 enum px_fmts {
 	YUV420P888 = 0x01
@@ -104,3 +105,4 @@ struct C_FRAME {
 
 
 
+#endif

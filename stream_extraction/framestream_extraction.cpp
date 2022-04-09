@@ -1,4 +1,19 @@
-#include <vector>
+#include "framestream_extraction.hpp"
+
+// get the framestream location using the sizes of the quantization matrix, this might be done without a function but this seems like a good way to keep everything clean
+void *get_fs_location(void *input, unsigned long long qmat_size){
+	return (input + qmat_size + sizeof(FV1_HEADER));
+}
+
+
+
+
+
+
+
+
+
+
 
 // extracted framestream block
 struct fs_ex_block
