@@ -1,9 +1,6 @@
 #ifndef bit_layout_reworked
 #define bit_layout_reworked
 
-enum px_fmts {
-	YUV420P888 = 0x01
-};
 
 
 struct FV1_HEADER {
@@ -28,25 +25,19 @@ struct FV1_HEADER {
 	unsigned long long px_x;
 	unsigned long long px_y;
 
-	// divide this value by thousand to get the actual fps. actual fps will range from 0.001 upwards
-	// special values (might be removed later): 
-	// 0xFFFFFFFFFFFFFFFE = 29.97 fps 
-    unsigned long long fps;
+	// fps numerator and denumerator
+	// actual fps = num/den;
+    unsigned long long fps_num;
+	unsigned long long fps_den;
 
 
 
 	// how and what colors are stored (monochrome, rgb, yuv)
-	/*
-	0x0000 = rgb888
-	0x0001= yuv420p8
-	*/
+	// uses the libav defined pixelformats in pixfmt.h
 	unsigned long long pix_fmt;
 
 	// only neccesary for yuv colorspaces i think
-	/*
-		bt2020, bt709, etc. 
-
-	*/
+	// also uses the libav defined colorspaces in pixfmt.h
 	unsigned short colorspace;
 
 };
@@ -96,6 +87,15 @@ struct C_FRAME {
 
 	
 
+};
+
+enum FV_FRAMETYPES {
+	UNCHANGED = 0,
+	C_FRAME_ID = 1,
+	R_FRAME_ID = 2,
+	B_FRAME_ID = 3,
+	RESERVED,
+	END_OF_STREAM = 15 
 };
 
 

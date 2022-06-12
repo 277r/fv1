@@ -1,13 +1,14 @@
-SRC := $(wildcard ./*/*.cpp) encode.cpp decode.cpp main.cpp
+SRC := $(wildcard ./*/*.cpp) $(wildcard ./*.cpp)
 CPPFLAGS := -Wno-write-strings 
-
+LDFLAGS := -lpthread -lavformat -lavcodec -lavutil 
 CC = g++
 LD = ld
 
-OBJ := $(wildcard */*.o) encode.o decode.o main.o
+OBJ := $(SRC:.cpp=.o)
+
 
 build: ${OBJ}
-	${CC} ${LDFLAGS} ${CPPFLAGS} ${OBJ} -o fv1_transcode
+	${CC} ${CPPFLAGS} ${OBJ} -o fv1_transcode ${LDFLAGS} 
 
 clean:
 	rm ${OBJ} fv1_transcode
@@ -17,7 +18,7 @@ cleanobj:
 
 
 %.o : %.cpp
-	$(CC) ${LDFLAGS} $(CPPFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) -c $< -o $@
 
 run: build
 	./fv1_transcode
