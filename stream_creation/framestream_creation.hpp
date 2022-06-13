@@ -12,6 +12,6 @@ struct framelist_entry {
 	void *location;
 
 };
-unsigned char *create_frame_stream(std::vector<framelist_entry> input, unsigned long long &length);
+unsigned char *create_frame_stream(std::vector<framelist_entry> input, unsigned long long &length, std::vector<unsigned long long> &f_positions);
 
 #endif

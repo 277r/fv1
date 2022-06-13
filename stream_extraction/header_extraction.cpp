@@ -12,7 +12,7 @@ void* extract_fv1_header_data(void *input, FV1_HEADER & rdata, unsigned long lon
 void* extract_qmats(void* input, FV1_HEADER input_info, void *& qmat1, void *& qmat2, void *& qmat3){
 	unsigned long long px_size = input_info.px_x * input_info.px_y;
 	unsigned long long size1, size2, size3;
-	if (input_info.pix_fmt == YUV420P888){
+	if (input_info.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P){
 		size1 = px_size;
 		// remember >> 2 is division by 4, is a a division by 2 on BOTH the x and y axis
 		size2 = px_size >> 2;

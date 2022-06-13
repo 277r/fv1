@@ -155,6 +155,7 @@ int encode(char* infile, char* outfile){
 
 
 	}
+	// get last input packet after EOF signal
 	av_read_frame(decoder->avfc, input_packet);
 	if (input_packet->stream_index == video_stream_index){		
 			int res = avcodec_send_packet(decoder->video_avcc, input_packet);
@@ -197,16 +198,43 @@ int encode(char* infile, char* outfile){
 	
 	if (previous_frame != 0)
 		av_frame_unref(previous_frame);
-	// write ending packet for frame list
 
+	// turn the frame list into raw bytes (the framestream part, data part happens later)
 	std::cout << john.size() << std::endl;
 	unsigned long long framestream_creation_res;
-	unsigned char *output = create_frame_stream(john, framestream_creation_res);
+	std::vector<unsigned long long> file_pointer_positions;
+	unsigned char *output = create_frame_stream(john, framestream_creation_res, file_pointer_positions);
 	std::cout << (void*)output << std::endl;
 	std::cout << framestream_creation_res << std::endl;
 
-	std::ofstream framestream_file_out;
-	framestream_file_out.open("out.txt", std::ios::binary);
-	framestream_file_out.write((const char*)output, framestream_creation_res);
-	framestream_file_out.close();
+	// finalize header
+	j.frames[0] = 0;
+	j.frames[1] = john.size();
+
+	// write header and framestream
+	std::ofstream fv1_file_out;
+	fv1_file_out.open(outfile, std::ios::binary);
+
+	fv1_file_out.write((const char*)&j, sizeof(FV1_HEADER));
+	fv1_file_out.write((const char*)output, framestream_creation_res);
+	// write datastream
+	/*
+	// append every frame's data buffer and set the frames 
+	for (int i = 0; i < john.size(); i++){
+		if (file_pointer_positions[i] != 0){
+			// v = get current position
+			unsigned long long v = fv1_file_out.tellp();
+			// set v in framestream
+
+			fv1_file_out.seekp(file_pointer_positions[i]);
+			fv1_file_out.write((const char*)&v, sizeof(unsigned long long));
+			// seek back to v
+			fv1_file_out.seekp(v);
+			// write frame
+			fv1_file_out.write((const char*)john[i].location, john[i].size);
+		}
+	}
+	*/
+	// close file
+	fv1_file_out.close();
 }

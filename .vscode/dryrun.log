@@ -1,0 +1,13 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/rs/Desktop/repos/fv1/reworked_2'
+g++ -Wno-write-strings  -c frame/C_frame.cpp -o frame/C_frame.o
+g++ -Wno-write-strings  -c stream_creation/framestream_creation.cpp -o stream_creation/framestream_creation.o
+g++ -Wno-write-strings  -c stream_creation/header_creation.cpp -o stream_creation/header_creation.o
+g++ -Wno-write-strings  -c stream_extraction/framestream_extraction.cpp -o stream_extraction/framestream_extraction.o
+g++ -Wno-write-strings  -c stream_extraction/header_extraction.cpp -o stream_extraction/header_extraction.o
+g++ -Wno-write-strings  -c decode.cpp -o decode.o
+g++ -Wno-write-strings  -c encode.cpp -o encode.o
+g++ -Wno-write-strings  -c main.cpp -o main.o
+g++ -Wno-write-strings  ./frame/C_frame.o ./stream_creation/framestream_creation.o ./stream_creation/header_creation.o ./stream_extraction/framestream_extraction.o ./stream_extraction/header_extraction.o ./decode.o ./encode.o ./main.o -o fv1_transcode -lpthread -lavformat -lavcodec -lavutil  
+make: Leaving directory '/home/rs/Desktop/repos/fv1/reworked_2'
+ 

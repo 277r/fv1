@@ -1,6 +1,6 @@
 #include "framestream_creation.hpp"
 // yes mixing raw pointers with vectors, reason is that raw data is useful when writing to the disk
-unsigned char *create_frame_stream(std::vector<framelist_entry> input, unsigned long long &length){
+unsigned char *create_frame_stream(std::vector<framelist_entry> input, unsigned long long &length, std::vector<unsigned long long> &f_positions){
 	// malloc ((input.size() + 1) >> 1) * 17 bytes for the output, since that is longer than the longest theoretical frame stream can get (exact calculations hard, might be a mathematical ERROR of me)
 	//output = malloc(...);
 
@@ -22,24 +22,35 @@ unsigned char *create_frame_stream(std::vector<framelist_entry> input, unsigned 
 		
 		// if both changed
 		if (input[2 * i].type != FV_FRAMETYPES::UNCHANGED && input[2 * i + 1].type != FV_FRAMETYPES::UNCHANGED){
+			
+			f_positions.push_back(length);
 			* (unsigned long long*) (output + length) = 0;
 			length += sizeof(unsigned long long);
+			f_positions.push_back(length);
 			* (unsigned long long*) (output + length) = 0;
 			length += sizeof(unsigned long long);
 		}
 
 		// if both unchanged
 		else if (input[2 * i].type == FV_FRAMETYPES::UNCHANGED && input[2 * i + 1].type == FV_FRAMETYPES::UNCHANGED){
-
+			// zero means no location which is safe since location has to be atleast 1 (if FV1_header is removed, there is still an info byte which will then have position 0)
+			f_positions.push_back(0);
+			f_positions.push_back(0);
 		}
 		// if 2i changed 
 		else if (input[2 * i + 1].type == FV_FRAMETYPES::UNCHANGED){
+			f_positions.push_back(length);
+			f_positions.push_back(0);
+			
 			* (unsigned long long*) (output + length) = 0;
 			length += sizeof(unsigned long long);
 		}
 
 		// if 2i+1 changed
 		else if (input[2 * i].type == FV_FRAMETYPES::UNCHANGED){
+			f_positions.push_back(0);
+			f_positions.push_back(length);
+			
 			* (unsigned long long*) (output + length) = 0;
 			length += sizeof(unsigned long long);
 		}

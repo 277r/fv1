@@ -16,7 +16,7 @@ struct FV1_HEADER {
 	48
 	*/
 	// ascii: "FV1bcmr0"
-	unsigned long long fv1_number = 0x46563162636d7230;
+	unsigned long long fv1_number = 0x30726d6362315646;
 	// amount of frames the video has
 	// if this number is zero, frames will be seen as a stream
 	unsigned long long frames[2];
