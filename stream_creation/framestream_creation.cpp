@@ -66,10 +66,12 @@ unsigned char *create_frame_stream(std::vector<framelist_entry> input, unsigned 
 		length += sizeof(unsigned char);
 
 		if (input[input.size()-1].type == FV_FRAMETYPES::UNCHANGED){
+		f_positions.push_back(0);
 			
 		}
 		
 		else {
+			f_positions.push_back(length);
 			* (unsigned long long*) (output + length) = 0;
 			length += sizeof(unsigned long long);
 		}

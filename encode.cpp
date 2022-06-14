@@ -208,8 +208,9 @@ int encode(char* infile, char* outfile){
 	std::cout << framestream_creation_res << std::endl;
 
 	// finalize header
-	j.frames[0] = 0;
-	j.frames[1] = john.size();
+	// set first part the 64 bit little endian framecount, so the other 64 bits will be aligned properly and can all be read in the future in one step
+	j.frames[0] = john.size();
+	j.frames[1] = 0;
 
 	// write header and framestream
 	std::ofstream fv1_file_out;
@@ -218,23 +219,27 @@ int encode(char* infile, char* outfile){
 	fv1_file_out.write((const char*)&j, sizeof(FV1_HEADER));
 	fv1_file_out.write((const char*)output, framestream_creation_res);
 	// write datastream
-	/*
+	// debug check if fpps are same size as john
+	std::cout << (file_pointer_positions.size() == john.size() ? "eq_size" : "error") << std::endl;
 	// append every frame's data buffer and set the frames 
 	for (int i = 0; i < john.size(); i++){
 		if (file_pointer_positions[i] != 0){
 			// v = get current position
 			unsigned long long v = fv1_file_out.tellp();
+			
 			// set v in framestream
-
-			fv1_file_out.seekp(file_pointer_positions[i]);
+			// FV1 header offset is not calculated into file pointer positions so it's added manually
+			fv1_file_out.seekp(file_pointer_positions[i] + sizeof(FV1_HEADER));
 			fv1_file_out.write((const char*)&v, sizeof(unsigned long long));
+			
 			// seek back to v
 			fv1_file_out.seekp(v);
+			
 			// write frame
 			fv1_file_out.write((const char*)john[i].location, john[i].size);
 		}
 	}
-	*/
+	
 	// close file
 	fv1_file_out.close();
 }
