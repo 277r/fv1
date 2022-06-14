@@ -1,2 +1,3 @@
 *.o
 fv1_transcode
+.vscode
