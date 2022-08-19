@@ -49,41 +49,44 @@ std::vector<fs_ex_block> extract_framestream(void *data, unsigned long long len)
 
 	bool end_of_stream = false;
 
-	fs_ex_block tmp;
+	fs_ex_block tmp1;
+	fs_ex_block tmp2;
 
 	unsigned long long pos = 0;
 	while (!end_of_stream)
 	{
-		// set zero
-		tmp.p1 = 0;
-		tmp.p2 = 0;
 
 		// extract the values
 		// get 4 leftmost bits by shifting 4 bits to right
-		tmp.t1 = (((unsigned char *)data)[pos]) >> 4;
+		tmp1.t = (((unsigned char *)data)[pos]) >> 4;
 		// get 4 rightmost bits by logically ANDing with the 4 rightmost bits
-		tmp.t2 = (((unsigned char *)data)[pos]) & 0b1111;
+		tmp2.t = (((unsigned char *)data)[pos]) & 0b1111;
 		
 		pos++;
 
 		
 
-		// if end of stream at first frame
-		if (tmp.t1 == 0b1111)
+		// if end of stream at first frame in a block
+		if (tmp1.t == 0b1111)
 		{
 			end_of_stream = true;
+			// return now or a garbage block is appended
+			return output_data;
 		}
 
-		else if (tmp.t2 == 0b1111)
+		else if (tmp2.t == 0b1111)
 		{
 			end_of_stream = true;			
 			// retrieve first frame, which is still whole
-			if (tmp.t1 != 0b0000)
+			if (tmp1.t != 0b0000)
 			{
-				tmp.p1 = *((unsigned long long *)(data + pos));
+				tmp1.p = *((unsigned long long *)(data + pos));
 				pos += 8;
 				
+				
 			}
+			output_data.push_back(tmp1);
+			return output_data;
 			
 		}
 
@@ -93,33 +96,34 @@ std::vector<fs_ex_block> extract_framestream(void *data, unsigned long long len)
 
 			// this can be optimized
 			// extract the frames
-			if (tmp.t1 == 0b0000 && tmp.t2 == 0b0000)
+			if (tmp1.t == 0b0000 && tmp2.t == 0b0000)
 			{
 				// do nothing
 			}
-			else if (tmp.t1 != 0b0000 && tmp.t2 == 0b0000)
+			else if (tmp1.t != 0b0000 && tmp2.t == 0b0000)
 			{
 				// grab first frame location
-				tmp.p1 = *((unsigned long long *)(data + pos));
+				tmp1.p = *((unsigned long long *)(data + pos));
 				pos += 8;
 
 			}
-			else if (tmp.t1 == 0b0000 && tmp.t2 != 0b0000){
+			else if (tmp1.t == 0b0000 && tmp2.t != 0b0000){
 				// grab second frame
-				tmp.p2 = *((unsigned long long *)(data + pos));
+				tmp2.p = *((unsigned long long *)(data + pos));
 				pos += 8;
 
 			}
 			else {
 				// grab 1st and 2nd frame
-				tmp.p1 = *((unsigned long long *)(data + pos));
-				tmp.p2 = *((unsigned long long *)(data + pos + 8));
+				tmp1.p = *((unsigned long long *)(data + pos));
+				tmp2.p = *((unsigned long long *)(data + pos + 8));
 				pos += 16;
 			}
 
 
 		}
-		output_data.push_back(tmp);
+		output_data.push_back(tmp1);
+		output_data.push_back(tmp2);
 	}
 
 

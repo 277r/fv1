@@ -1,10 +1,12 @@
 SRC := $(wildcard ./*/*.cpp) $(wildcard ./*.cpp)
+OBJ := $(SRC:.cpp=.o)
+
 CPPFLAGS := -Wno-write-strings 
 LDFLAGS := -lpthread -lavformat -lavcodec -lavutil 
+
 CC = g++
 LD = ld
 
-OBJ := $(SRC:.cpp=.o)
 
 
 build: ${OBJ}

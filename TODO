@@ -1,0 +1,20 @@
+
+
+fix timecode and fps in output file being wrong
+
+move common definitions to libav_include.hpp
+add readme with compilation guide
+use linker directly instead of using g++ when building target build/static
+
+allow encoder to store frames on disk in temporary folder until framestream can be created
+
+iostream -> iosfwd maybe
+
+C frame compression (known to other people as i frames)
+design BI frame
+
+when encoder and decoder are finished:
+fix bit_layout_reworked documentation
+scan encode(), decode() for memory leaks (especially when returning errors)
+
+

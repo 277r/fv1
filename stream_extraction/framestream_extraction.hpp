@@ -7,8 +7,8 @@
 // extracted framestream block
 struct fs_ex_block
 {
-	unsigned char t1, t2;
-	unsigned long long p1, p2;
+	unsigned char t;
+	unsigned long long p;
 };
 
 std::vector<fs_ex_block> extract_framestream(void *data, unsigned long long len);

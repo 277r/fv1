@@ -24,7 +24,13 @@ int main(int argc, char *argv[]){
 	bool convert_to_fv1;
 	char *input_filename = argv[2];
 	char *output_filename = argv[3];
+	
+	char *encoder_name = "libx265";
+	if (argc > 4){
+		encoder_name = argv[4];
+	}
 
+	// need better option handling
 	// get input options
 	while (*(argv[1]) != 0){
 		 if (*argv[1] == 'e'){
@@ -38,12 +44,12 @@ int main(int argc, char *argv[]){
 		*(argv[1])++;
 	}
 
-	std::cout << "input filename: " << input_filename << "\noutput filename: " << output_filename << "\ntranscoding to: " << (convert_to_fv1 ? std::string("fv1") : std::string("ffmpeg")); 
+	std::cout << "input filename: " << input_filename << "\noutput filename: " << output_filename << "\ntranscoding to: " << (convert_to_fv1 ? std::string("fv1\n") : std::string("ffmpeg\n")); 
 	if (convert_to_fv1){
 		encode(input_filename, output_filename);
 	}
 	else {
-		decode(input_filename, output_filename);
+		decode(input_filename, output_filename, encoder_name);
 	}
 
 }

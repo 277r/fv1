@@ -78,18 +78,21 @@ int encode(char* infile, char* outfile){
 		return -1;
 	}
 
+	
+
 
 
 	// get video information needed for encoder
     AVRational input_framerate = av_guess_frame_rate(decoder->avfc, decoder->video_avs, NULL);
 	FV1_HEADER j;
-	j.fps_num = input_framerate.num;
-	j.fps_den = input_framerate.den;
-	j.px_x = decoder->video_avs->codec->width;
-	j.px_y = decoder->video_avs->codec->height;
-	j.pix_fmt = decoder->video_avs->codec->pix_fmt;
-	j.colorspace = decoder->video_avs->codec->colorspace;
-
+	{
+		j.fps_num = input_framerate.num;
+		j.fps_den = input_framerate.den;
+		j.px_x = decoder->video_avs->codec->width;
+		j.px_y = decoder->video_avs->codec->height;
+		j.pix_fmt = decoder->video_avs->codec->pix_fmt;
+		j.colorspace = decoder->video_avs->codec->colorspace;
+	}
 
 
 	// create framelist vector, that holds all the frames
@@ -139,6 +142,15 @@ int encode(char* infile, char* outfile){
 				}
 
 				if (res >= 0){
+					
+					// output all data from the input frame	
+					{
+						
+
+						
+						
+					}
+
 					// encode frame, delete previous frame, set previous frame to this frame for next run
 					john.push_back(encode_frame(j,input_frame, previous_frame));
 					if (previous_frame != 0)
@@ -218,15 +230,19 @@ int encode(char* infile, char* outfile){
 
 	fv1_file_out.write((const char*)&j, sizeof(FV1_HEADER));
 	fv1_file_out.write((const char*)output, framestream_creation_res);
+	
+	// after writing framestream, delete framestream
+	delete[] output;
+	
 	// write datastream
 	// debug check if fpps are same size as john
 	std::cout << (file_pointer_positions.size() == john.size() ? "eq_size" : "error") << std::endl;
+	
 	// append every frame's data buffer and set the frames 
-	for (int i = 0; i < john.size(); i++){
+	for (unsigned long long i = 0; i < john.size(); i++){
 		if (file_pointer_positions[i] != 0){
 			// v = get current position
 			unsigned long long v = fv1_file_out.tellp();
-			
 			// set v in framestream
 			// FV1 header offset is not calculated into file pointer positions so it's added manually
 			fv1_file_out.seekp(file_pointer_positions[i] + sizeof(FV1_HEADER));

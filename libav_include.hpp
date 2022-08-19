@@ -12,29 +12,13 @@ extern "C" {
 	#include <inttypes.h>
 }
 
-typedef struct StreamingParams {
-  char copy_video;
-  char copy_audio;
-  char *output_extension;
-  char *muxer_opt_key;
-  char *muxer_opt_value;
-  char *video_codec;
-  char *audio_codec;
-  char *codec_priv_key;
-  char *codec_priv_value;
-} StreamingParams;
 
-typedef struct StreamingContext {
+struct StreamingContext {
   AVFormatContext *avfc;
   AVCodec *video_avc;
-  AVCodec *audio_avc;
   AVStream *video_avs;
-  AVStream *audio_avs;
   AVCodecContext *video_avcc;
-  AVCodecContext *audio_avcc;
-  int video_index;
-  int audio_index;
   char *filename;
-} StreamingContext;
+};
 
 #endif
