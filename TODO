@@ -1,7 +1,5 @@
 
 
-fix timecode and fps in output file being wrong
-
 move common definitions to libav_include.hpp
 add readme with compilation guide
 use linker directly instead of using g++ when building target build/static

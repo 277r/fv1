@@ -129,13 +129,14 @@ int decode(char* infile, char* outfile, char *encname){
 	avcc->bit_rate = 40 * 100 * 100;
     avcc->width = j.px_x;
     avcc->height = j.px_y;
-    avcc->time_base = (AVRational){j.fps_num,j.fps_den};
+    avcc->time_base = (AVRational){j.fps_den,j.fps_num};
+	
 	s->time_base = avcc->time_base;
     avcc->framerate = av_div_q({1,1},{(int)j.fps_num,(int)j.fps_den});
 
 	// divide by fps to get right time
-	s->duration = (j.frames[0] + 1) * (int)((float)(fps.den)/(float)(fps.num));
-	oc->duration = (j.frames[0] + 1) * (int)((float)(fps.den)/(float)(fps.num));
+	s->duration = (j.frames[0] + 1);
+	oc->duration = (j.frames[0] + 1);
 	avcc->gop_size = 10;
     avcc->max_b_frames = 1;
 
@@ -180,6 +181,7 @@ int decode(char* infile, char* outfile, char *encname){
     }
 
 
+	
 	// write header and hope for best
 	res = avformat_write_header(oc, NULL);
 	if (res < 0){
