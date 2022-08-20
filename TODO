@@ -15,4 +15,14 @@ when encoder and decoder are finished:
 fix bit_layout_reworked documentation
 scan encode(), decode() for memory leaks (especially when returning errors)
 
+update framestream_extraction(..) so it has set length and will never segfault except when video stream
+upate decode.cpp so it actually can supply a zero, current formula has a minimum of 1
 
+for C frames:
+	design them (duhh, see rule 11)
+	split the video in blocks of 16, then half every time so the blocks stay 16x16
+
+
+for RI frames:
+	add lookback option (compare to last N frames), add memory option (to store N frames that have been seen multiple times already, circular overwrite list)
+	make comparison function for frame_test that checks in amount of different blocks

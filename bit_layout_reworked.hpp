@@ -2,6 +2,13 @@
 #define bit_layout_reworked
 
 
+/*
+the fv1 file consists of 3 parts:
+	the header (FV1_HEADER)
+	the framelist (frame_data * N)
+	the frames (other)
+see assets/bitstream.png for the same information visualized
+*/
 
 struct FV1_HEADER {
 	// FV1 special number

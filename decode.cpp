@@ -75,12 +75,7 @@ int decode(char* infile, char* outfile, char *encname){
 
 	
 
-	// replace ofstream with avformat outputing above here
-	std::ofstream o;
-	o.open(outfile, std::ofstream::out | std::ofstream::trunc);
-	o.close();
 	
-	o.open(outfile,std::ios::binary | std::ios::app);	
 	
 
 
@@ -148,6 +143,7 @@ int decode(char* infile, char* outfile, char *encname){
 	
     
 	if (j.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P){
+		// debug, remove later
 		std::cout << "pixelformat setting worked :)\n";
 		avcc->pix_fmt = AVPixelFormat::AV_PIX_FMT_YUV420P;
 	}
@@ -220,6 +216,7 @@ int decode(char* infile, char* outfile, char *encname){
 	input_fv1_file.read((char*)buf, fs_size);
 	std::vector<fs_ex_block> frame_list = extract_framestream(buf,fs_size);
 
+	// debug, but less verbose, remove later maybe
 	std::cout << "fs size: " << fs_size << std::endl;	
 	std::cout << "size: "<< frame_list.size() << std::endl;
 
@@ -233,6 +230,8 @@ int decode(char* infile, char* outfile, char *encname){
 
 		decode_frame(j, input_fv1_file, frame_list[i].p,received_frame, prev_frame, frame_list[i].t);
 		received_frame->pts = i;
+		
+		// debug, remove later
 		std::cout << "frame number: " << i << "\nframe id: " << frame_list[i].t << "\nframe_pos: " << frame_list[i].p << "\n\n"; 
 
 		encode_pkt(avcc, received_frame, pkt, s, oc);
@@ -245,15 +244,15 @@ int decode(char* infile, char* outfile, char *encname){
 	// after writing video data, write trailer
 	av_write_trailer(oc);
 	
+	// delete all resources
 	avcodec_free_context(&avcc);
     av_frame_free(&prev_frame);
     av_frame_free(&received_frame);
     av_packet_free(&pkt);
     
-
+	// close file
 	avio_closep(&oc->pb);
 
-	// after looping delete all resources
 	
 		
 }
