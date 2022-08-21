@@ -11,6 +11,8 @@ iostream -> iosfwd maybe
 C frame compression (known to other people as i frames)
 design BI frame
 
+logging system with loglevel that can be set when running the application
+
 when encoder and decoder are finished:
 fix bit_layout_reworked documentation
 scan encode(), decode() for memory leaks (especially when returning errors)

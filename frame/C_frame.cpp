@@ -11,6 +11,7 @@ framelist_entry encode_c(FV1_HEADER info, AVFrame* in, AVFrame* prev){
 	int xblocks = (info.px_x >> 4) + ((info.px_x & 15) > 0 ? 1 : 0);
 	int yblocks = (info.px_y >> 4) + ((info.px_y & 15) > 0 ? 1 : 0);
 	
+
 	/*
 	bool *diff_table = new bool[xblocks*yblocks];
 	// compare 16x16 blocks
@@ -28,26 +29,31 @@ framelist_entry encode_c(FV1_HEADER info, AVFrame* in, AVFrame* prev){
 	// only execute if YUV420P
 	unsigned char *outbuf;
 	int outbuf_index = 0;
-	
+
 	if (info.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P){
-		// change to faster memory copying (memcpy or something else)
+		// changed to faster memory copying (memcpy or something else)
 		outbuf = new unsigned char[xblocks * yblocks * 256 * 2];
-		for (int i = 0; i < in->height * 2; i++){
-			int output_offset = outbuf_index + i * in->height;
-			
-
-				memcpy(&outbuf[output_offset], &(in->data[0][output_offset]), in->width);
-		}		
-		outbuf_index += in->height * in->width;
 		for (int i = 0; i < in->height; i++){
-			int output_offset = outbuf_index + i * (in->height >> 1);
+			
+			int output_offset = outbuf_index + i * in->width;
+			int input_offset = i * in->linesize[0];
 
-			memcpy(&(outbuf[output_offset]), &(in->data[1][i* (in->height >> 1)]), in->height >> 1);
+				memcpy(&outbuf[output_offset], &(in->data[0][input_offset]), in->width);
+		}		
+
+		outbuf_index += in->height * in->width;
+		for (int i = 0; i < in->height >> 1; i++){
+			int output_offset = outbuf_index + i * (in->width >> 1);
+			int input_offset = i * in->linesize[1];
+
+			memcpy(&(outbuf[output_offset]), &(in->data[1][input_offset]), in->width >> 1);
 		}	
 		outbuf_index += (in->height >> 1) * (in->width >> 1);
-		for (int i = 0; i < in->height; i++){
-			int output_offset = outbuf_index + i * (in->height >> 1);
-			memcpy(&(outbuf[output_offset]), &(in->data[2][i* (in->height >> 1)]), in->height >> 1);
+		for (int i = 0; i < in->height >> 1; i++){
+			int output_offset = outbuf_index + i * (in->width >> 1);
+			int input_offset = i * in->linesize[2];
+
+			memcpy(&(outbuf[output_offset]), &(in->data[2][input_offset]), in->width >> 1);
 
 		}	
 		outbuf_index += (in->height >> 1) * (in->width >> 1);
@@ -80,12 +86,29 @@ void decode_c(FV1_HEADER info, std::ifstream &f_in, unsigned long long frame_pos
 	if (info.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P){
 		
 	// the size of the data to read can be determined from the fv1 header and the data, even with DCT, RLE, and other compression algorithms
-		f_in.read((char*)out->data[0], pixels);
-		f_in.read((char*)out->data[1], pixels >> 2);
-		f_in.read((char*)out->data[2], pixels >> 2);
+		if (out->linesize[0] == info.px_x){
+
+			f_in.read((char*)out->data[0], pixels);
+			f_in.read((char*)out->data[1], pixels >> 2);
+			f_in.read((char*)out->data[2], pixels >> 2);
+		}
+		// read lines seperately
+		else {
+			// for every horizontal line
+			for (int i = 0; i < info.px_y; i++){
+				f_in.read((char*)&out->data[0][out->linesize[0] * i], info.px_x);
+			}
+			// uv planes at half the size
+			for (int i = 0; i < info.px_y >> 1; i++){
+				f_in.read((char*)&out->data[1][out->linesize[1] * i], info.px_x >> 1);
+			}
+			for (int i = 0; i < info.px_y >> 1; i++){
+				f_in.read((char*)&out->data[2][out->linesize[2] * i], info.px_x >> 1);
+			}
+		}
+
 	}
 
-	// very unsafe bug error can happen here
 	
 	
 

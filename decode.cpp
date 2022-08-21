@@ -3,6 +3,11 @@
 
 int decode_frame(FV1_HEADER video_info, std::ifstream &f_in, unsigned long long frame_location_abs, AVFrame *frame_out, AVFrame *prev_frame, unsigned char frame_info){
 	// can be optimized, array of functors
+	if (frame_info == 0){
+		//frame_out = av_frame_clone(prev_frame);
+		av_frame_copy(frame_out,prev_frame);
+	}
+	
 	if (frame_info == 1){
 		decode_c(video_info, f_in, frame_location_abs, frame_out, prev_frame);
 	}

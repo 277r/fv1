@@ -2,12 +2,64 @@
 
 
 
+int probe_frame(FV1_HEADER d, AVFrame *current, AVFrame *prev){
+	// first frame does not have a previous frame, return C frame
+	if (prev == NULL){
+		return FV_FRAMETYPES::C_FRAME_ID;
+	}
+
+	// could be multithreaded, probably not smart to do so
+	// check change percentage for U frame, no need to do in another file because U frames have no other information
+	if (d.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P)
+	{
+		int change = false;
+		for (int i = 0; i < d.px_y; i++){
+			for (int ii = 0; ii < d.px_x; ii++){
+				// calculate pixel positions
+				int pos = i * current->linesize[0] + ii;
+
+				if (current->data[0][pos] != prev->data[0][pos]){
+					change = true;
+				}
+
+				// yuv420p, so half the size for the UV planes
+				if (i % 2 == 0 && ii % 2 == 0){
+				int pos_uv = (i >> 1) * current->linesize[1] + (ii >> 1);
+					if (current->data[1][pos_uv] != prev->data[1][pos_uv]){
+						change = true;
+					}
+					if (current->data[2][pos_uv] != prev->data[2][pos_uv]){
+						change = true;
+					}
+				}
+			}
+		}
+		if (!change){
+			return FV_FRAMETYPES::UNCHANGED;
+		}
+	}
+
+	// if unsure, use C frame
+	return FV_FRAMETYPES::C_FRAME_ID;
+
+
+}
+
 
 framelist_entry encode_frame(FV1_HEADER data, AVFrame *current_frame, AVFrame *prev_frame){
 	// probe frame to see what frame type is best
+	int best = probe_frame(data, current_frame, prev_frame);
+	switch (best){
+		case 0: {
+			return framelist_entry {0, 0, 0};
+		}
+		
+		case 1: {
+		// encode frame with that frametype
+			return encode_c(data, current_frame, prev_frame);
+		}
 
-	// encode frame with that frametype
-	return encode_c(data, current_frame, prev_frame);
+	}
 
 }
 
@@ -155,7 +207,7 @@ int encode(char* infile, char* outfile){
 					john.push_back(encode_frame(j,input_frame, previous_frame));
 					if (previous_frame != 0)
 						av_frame_unref(previous_frame);
-					previous_frame = input_frame;	
+					previous_frame = av_frame_clone( input_frame);	
 				}
 		
 			}
