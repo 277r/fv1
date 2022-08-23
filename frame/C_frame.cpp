@@ -114,3 +114,18 @@ void decode_c(FV1_HEADER info, std::ifstream &f_in, unsigned long long frame_pos
 
 
 }
+
+
+int test_c_frame(FV1_HEADER info, AVFrame *in, AVFrame *prev, int quality){
+	if (info.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P){
+		// divide into blocks, test change
+		// do for every layer
+
+		
+	}
+
+	else std::cout << "error: unsupported pixelformat\n";
+
+	return 0;
+
+}

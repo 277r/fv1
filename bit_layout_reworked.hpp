@@ -59,7 +59,8 @@ struct frame_data {
 	// 0b0001 = C frame, see frame types 
 	// 0b0010 = R frame, see frame types
 	// 0b0011 = B frame, see frame types
-	// 0b0100 - 0b1110: reserved
+	// 0b0100 = keyframe, see frame types, (keyframes will be decoded and encoded as C frames, but there will have to be a special flag needed only when encoding)
+	// 0b0101 - 0b1110: reserved
 	// 0b1111 = end of stream (last frame)
 	int frame1 : 4;
 	int frame2 : 4;
@@ -83,6 +84,7 @@ struct frame_pointer {
 // the next part will have frame types and their inner data parts
 
 // a C frame only stores change, it has only a few bits of information and then it has 'pointers' that point to either the data itself, or a CTU
+// four bits of unused data, what a waste of space, but just keeping 4 bits will give a massive performance drop when the data behind it has to be realigned
 struct C_FRAME {
 	// information
 	// 0b00000001 = changed
@@ -90,6 +92,18 @@ struct C_FRAME {
 	// 0b00000010 = split horizontally
 	// 0b00000011 = split vertically
 	// 0b00000100 = split 4 way squares
+	// if the 5th bit is set, and the frame is split, the frame will have 'pointers' so it can be multithreaded when decompressing, if the 5th bit isn't set, the next split block can be found by calculating the read bytes from the split block before (a bit complex to explain here) 
+	/* 
+		the reason for this is that 'framepointers' take 8 bytes of data, 
+		and having those pointers for every 16x16 block in a 1440x2560 pixel video will have 20000 framepointers for only the luminescence layer,
+		if YUV420p is used, there will be a total of 30000 framepointers for one frame, multiply that by 60 for the framerate and by 64 bits for the framepointer length and it gives:
+		overhead_bitrate = 30000 * 60 * 64 = 112Mbit/s for only the offsets
+
+		having no offset pointers means no multithreading, having too much offset pointers means larger filesize,
+		the encoder can decide how deep to allow multithreading, i'd say 2 layers is good enough with a maximum of 20 (4 + 4^2) offset pointers per frame,
+		this allows up to 16 threads to be used to decode a frame, and an overhead of only 76.8kb/s
+	*/
+	// 0b00001xxx 
 	char info;
 
 	
@@ -101,6 +115,7 @@ enum FV_FRAMETYPES {
 	C_FRAME_ID = 1,
 	R_FRAME_ID = 2,
 	B_FRAME_ID = 3,
+	KEYFRAME_ID = 4,
 	RESERVED,
 	END_OF_STREAM = 15 
 };

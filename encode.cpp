@@ -8,6 +8,8 @@ int probe_frame(FV1_HEADER d, AVFrame *current, AVFrame *prev){
 		return FV_FRAMETYPES::C_FRAME_ID;
 	}
 
+
+	// if U frame has no difference, use that since it's the smallest possible frame
 	// could be multithreaded, probably not smart to do so
 	// check change percentage for U frame, no need to do in another file because U frames have no other information
 	if (d.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P)
@@ -38,6 +40,20 @@ int probe_frame(FV1_HEADER d, AVFrame *current, AVFrame *prev){
 			return FV_FRAMETYPES::UNCHANGED;
 		}
 	}
+	// test R frame
+	// if R frame has a good candidate, use that since that has a very low amount of data stored
+	
+	// test C frame and B frame, both should return a percentage of how good they are, use percentage_B > percentage_C ? B frame : C frame;
+	int sc = test_c_frame(d, current, prev, 100);
+	/*	
+	// b frames probably won't work with a quality of 100
+	int sb = test_b_frame(d, current, prev, 100);
+	if (sb > sc){
+		return FV_FRAMETYPES::B_FRAME_ID;
+	}
+	
+
+*/
 
 	// if unsure, use C frame
 	return FV_FRAMETYPES::C_FRAME_ID;

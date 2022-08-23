@@ -11,6 +11,7 @@ iostream -> iosfwd maybe
 C frame compression (known to other people as i frames)
 design BI frame
 
+
 logging system with loglevel that can be set when running the application
 
 when encoder and decoder are finished:
@@ -22,9 +23,16 @@ upate decode.cpp so it actually can supply a zero, current formula has a minimum
 
 for C frames:
 	design them (duhh, see rule 11)
-	split the video in blocks of 16, then half every time so the blocks stay 16x16
 
 
 for RI frames:
 	add lookback option (compare to last N frames), add memory option (to store N frames that have been seen multiple times already, circular overwrite list)
 	make comparison function for frame_test that checks in amount of different blocks
+
+
+quality level
+// for quality:
+allow diff_compare to use the quality setting using either covariance or standard deviation, since 10 pixels being a value of 1 off isn't much, but a pixel being a value of 100 off is a lot
+diff compare should return a value from 1-100% change, but then block testing formulas also should change
+
+add tuning options for encoder like repeating (i.e. 	gifs), moving (real life video)

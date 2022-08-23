@@ -1,0 +1,8 @@
+assets/* images used in explanations
+frame/* files that have functions to encode/decode frames with certain technologies
+rle/* run length encoding algorithm, based on simpleRLE
+tq/* transform, quantization functions to indirectly make matrices of data smaller
+stream_creation/* creates the framestream that will be outputted to the file
+stream_extraction/* extracts said stream
+bit_layout_reworked.hpp contains all common structs used by the encoder and decoder
+libav_include.hpp contains all libav includes, this file is then included in other files
