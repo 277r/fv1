@@ -11,6 +11,7 @@ iostream -> iosfwd maybe
 C frame compression (known to other people as i frames)
 design BI frame
 
+keyframe interval option
 
 logging system with loglevel that can be set when running the application
 
