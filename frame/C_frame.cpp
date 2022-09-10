@@ -12,8 +12,6 @@ struct C_FRAME_MEM {
 	char info;
 	// left top, right top, left bottom, right bottom parts
 	C_FRAME_MEM *lt, *rt, *lb, *rb;
-	// sizes of data
-	int lts, rts, lbs, rbs;
 	// in case of info == 1, use the data object 
 	void *data;
 	int size;
@@ -21,29 +19,100 @@ struct C_FRAME_MEM {
 
 };
 
+void free_c_frame_mem_tree(C_FRAME_MEM *p){
+	// delete all subdata recursively
+}
+
+
 // transform raw pixel data into usable data
 void *encode_block(FV1_HEADER info, AVFrame*in, int xbpos, int ybpos, int &size){
 
 }
 
+// function used for create_tree_and_encode(...);
+C_FRAME_MEM* combine_2_blocks(C_FRAME_MEM* plt, C_FRAME_MEM *prb, int split_direction){
+	// split direction:
+	// 0b10 == vertical split
+	// 0b11 == horizontal split
+	/* possible combinations of plt->info and prb->info:
+			plt == 0, prb == 0
+			plt == 0, prb == 1
+			plt == 1, prb == 0
+			plt == 1, prb == 1
+			
+			also possible: plt and prb having other values than 0 and 1, in that case just return a C_FRAME_MEM which contains the plt and prb
+		*/
+	C_FRAME_MEM *ret = new C_FRAME_MEM;
+
+		// if all parts are just raw data, just store the raw data, the decoder will know how to figure out where to place what data based on the recursion level and current position in the decoding function
+		if (plt->info == 1 && prb->info == 1){
+			// can be optimized
+			// allocate data for both sizes combined
+			ret->data = new unsigned char[plt->size + prb->size];
+			// copy first buffer, copy second buffer and put right after first buffer
+			memcpy(ret->data, plt->data, plt->size);
+			memcpy(ret->data + plt->size, prb->data, prb->size);
+			// after copying memory, delete
+			delete[] plt->data;
+			delete[] prb->data;
+			delete[] plt;
+			delete[] prb;
+			ret->info = 0b00000001;
+			return ret;
+		}
+		
+		else if (plt->info == 0 && prb->info == 0){
+			delete[] plt->data;
+			delete[] prb->data;
+			delete[] plt;
+			delete[] prb;
+			ret->info = 0b00000000;
+			return ret;
+		}
+		
+		// combination 2,3, can't combine
+		else {
+			ret->info = split_direction;
+			ret->lt = plt;
+			ret->rb = prb;
+			return ret;
+		}
+
+}
+
 // no need for previous frame since diff table has been created
 // xstart ystart xlen ylen are used for the recursion, those should just be fed with {0,0, xblocks, yblocks}
-C_FRAME_MEM create_tree_and_encode(FV1_HEADER info, AVFrame *in,bool **diff_table, int xstart, int ystart, int xlen, int ylen){
+C_FRAME_MEM* create_tree_and_encode(FV1_HEADER info, AVFrame *in,bool **diff_table, int xstart, int ystart, int xlen, int ylen){
 	
 	// the part that gets returned
-	C_FRAME_MEM ret;
+	C_FRAME_MEM *ret = new C_FRAME_MEM;
 	
 
 	// all split parts of frames etc
-	C_FRAME_MEM plt, prt, plb, prb;
+	C_FRAME_MEM *plt = new C_FRAME_MEM;
+	C_FRAME_MEM *prt = new C_FRAME_MEM;
+	C_FRAME_MEM *plb = new C_FRAME_MEM;
+	C_FRAME_MEM *prb = new C_FRAME_MEM;
 	int part_count;
 
+	// this block is allowed to return, because it does not have much multiple cases like horizontal split and vertical split being able to use the same functions for return data
 	// deepest part of block reached when both x and y length equal zero, most complex function
 	if (xlen == 1 && ylen == 1){
-		part_count = 1;
-		ret.info = 1;
-		ret.data = encode_block(info, in, xstart, ystart, ret.size);
-		// probably safe to return right here
+		// 4 parts won't be returned so delete
+		delete[] plt;
+		delete[] prt;
+		delete[] plb;
+		delete[] prb;
+
+		if (diff_table[xstart][ystart] == 0){
+			ret->info == 0;
+			return ret;
+		}
+		else {
+			ret->info = 1;
+			ret->data = encode_block(info, in, xstart, ystart, ret->size);
+			return ret;
+		}
 
 	}
 	
@@ -52,7 +121,7 @@ C_FRAME_MEM create_tree_and_encode(FV1_HEADER info, AVFrame *in,bool **diff_tabl
 	// next 2 else if blocks are made so that videos that don't have xblocks = yblocks work without needing any more storage space, it might be a bit complicated to explain 
 	else if (xlen == 1){
 		// set split direction
-		ret.info = 0b00000011;
+		ret->info = 0b00000011;
 		part_count = 2;
 		int new_ylen = (ylen >> 1);
 		int new_ylen2 = (ylen >> 1) + (ylen & 1);
@@ -67,7 +136,7 @@ C_FRAME_MEM create_tree_and_encode(FV1_HEADER info, AVFrame *in,bool **diff_tabl
 	}
 
 	else if (ylen == 1){
-		ret.info = 0b00000010;
+		ret->info = 0b00000010;
 		part_count = 2;
 		int new_xlen = (xlen >> 1);
 		int new_xlen2 = (xlen >> 1) + (xlen & 1);
@@ -93,35 +162,107 @@ C_FRAME_MEM create_tree_and_encode(FV1_HEADER info, AVFrame *in,bool **diff_tabl
 
 	// check parts after receiving results, combine if possible
 
-	// (depending on part_count):
-	// if all parts.info == 1, add all raw data to save overhead, and return
-	// else
-	// for parts:
-	/*
-		if part[n].info == 1, add part[n].size
-		if part[n].info == hsplit, add both parts.size
-
-	*/ 
-
-
+	// 2 way split
 	if (part_count == 2){
-		// if all parts are just raw data, just store the raw data, the decoder will know how to figure out where to place what data based on the recursion level and current position in the decoding function
-		if (plt.info == 1 && prb.info == 1){
-			// can be optimized
-			// allocate data for both sizes combined
-			ret.data = new unsigned char[plt.size + prb.size];
-			// copy first buffer, copy second buffer and put right after first buffer
-			memcpy(ret.data, plt.data, plt.size);
-			memcpy(ret.data + plt.size, prt.data, prt.size);
-			ret.info = 0b00000001;
-			return ret;
-		}
-		else {
-			// check every other possibility
-		}
+		// prt and plb won't be returned, so delete
+		delete[] prt;
+		delete[] plb;
+		delete[] ret;
+		return combine_2_blocks(plt,prb, ret->info);
 	}
 	// do the same for 4 parts
+	// this will be a pain, because the 4 (2x2) parts can also form 2 split blocks (a horizontal and vertical split, with either horizontal first or vertical first)
+	// look at assets/c_tree_4_notes.png (warning: dutch)
 	if (part_count == 4){
+		// not sure if switch could be used here due to the multiple values
+		
+		
+		// all zero
+		if (plt->info == 0 && prt->info == 0 && plb->info == 0 && prb->info == 0){
+			// 4 parts won't be returned so delete
+			delete[] plt;
+			delete[] prt;
+			delete[] plb;
+			delete[] prb;
+			ret->info = 0b00000000;
+			return ret;
+		}
+		// all one
+		if (plt->info == 1 && prt->info == 1 && plb->info == 1 && prb->info == 1){
+			// can be optimized
+			// allocate data for all sizes combined
+			ret->data = new unsigned char[plt->size + prt->size + plb->size + prb->size];
+			// copy first buffer, copy second buffer and put right after first buffer
+			memcpy(ret->data, plt->data, plt->size);
+			memcpy(ret->data + plt->size, prt->data, prt->size);
+			memcpy(ret->data + plt->size + prt->size, plb->data, plb->size);
+			memcpy(ret->data + plt->size + prt->size + plb->size, prb->data, prb->size);
+			// 4 parts won't be returned so delete, after memcopying all values;
+			delete[] plt->data;
+			delete[] prt->data;
+			delete[] plb->data;
+			delete[] prb->data;
+			delete[] plt;
+			delete[] prt;
+			delete[] plb;
+			delete[] prb;
+			
+			
+			ret->info = 0b00000001;
+			return ret;
+		}
+		// vertical check (left side 00, left side 11, right side 00, right side 11)
+		if (plt->info == 0 && plb->info == 0){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,plb,0b11),combine_2_blocks(prt,prb,0b11),0b10);
+
+		}
+		if (plt->info == 1 && plb->info == 1){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,plb,0b11),combine_2_blocks(prt,prb,0b11),0b10);
+		}
+		if (prt->info == 0 && prb->info == 0){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,plb,0b11),combine_2_blocks(prt,prb,0b11),0b10);
+		}
+		if (prt->info == 1 && prb->info == 1){
+			delete[] ret;			
+			return combine_2_blocks(combine_2_blocks(plt,plb,0b11),combine_2_blocks(prt,prb,0b11),0b10);
+		}
+
+		// horizontal check (top side 00, top side 11, bottom side 00, bottom side 11)
+
+		if (plt->info == 0 && prt->info == 0){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,prt,0b10),combine_2_blocks(plb,prb,0b10),0b11);
+
+		}
+		if (plt->info == 1 && prt->info == 1){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,prt,0b10),combine_2_blocks(plb,prb,0b10),0b11);
+
+		}
+		if (plb->info == 0 && prb->info == 0){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,prt,0b10),combine_2_blocks(plb,prb,0b10),0b11);
+
+		}
+		if (plb->info == 1 && prb->info == 1){
+			delete[] ret;
+			return combine_2_blocks(combine_2_blocks(plt,prt,0b10),combine_2_blocks(plb,prb,0b10),0b11);
+
+		}
+
+		// possible compression optimization: same as horizontal check but instead of lefttop,righttop-leftbottom,rightbottom. use order lefttop,rightbottom-leftbottom,righttop. will take an extra bit but since there's still 4+ available in the info byte it doesn't matter much
+		
+
+		// and else, just put all pointers into ret and return with info == 4 way split 
+		ret->info = 0b00000100;
+		ret->lt = plt;
+		ret->rt = prt;
+		ret->lb = plb;
+		ret->rb = prb;
+		return ret;
 
 	}
 	

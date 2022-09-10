@@ -3,9 +3,9 @@
 
 
 int probe_frame(FV1_HEADER d, AVFrame *current, AVFrame *prev){
-	// first frame does not have a previous frame, return C frame
+	// first frame does not have a previous frame, return keyframe
 	if (prev == NULL){
-		return FV_FRAMETYPES::C_FRAME_ID;
+		return FV_FRAMETYPES::KEYFRAME_ID;
 	}
 
 
