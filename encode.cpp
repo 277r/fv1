@@ -71,8 +71,15 @@ framelist_entry encode_frame(FV1_HEADER data, AVFrame *current_frame, AVFrame *p
 		}
 		
 		case 1: {
-		// encode frame with that frametype
-			return encode_c(data, current_frame, prev_frame);
+			// encode frame with that frametype
+			return encode_c(data, current_frame, prev_frame, 0);
+		}
+		case 4: {
+			return encode_c(data, current_frame, prev_frame, 1);
+		}
+
+		default: {
+			std::cout << "error: not implemented yet\nframe type: " << best;
 		}
 
 	}

@@ -8,7 +8,7 @@
 
 
 
-framelist_entry encode_c(FV1_HEADER info, AVFrame* in, AVFrame* prev);
+framelist_entry encode_c(FV1_HEADER info, AVFrame* in, AVFrame* prev, int opts);
 
 void decode_c(FV1_HEADER info, std::ifstream &f_in, unsigned long long frame_pos, AVFrame* out, AVFrame* prev);
 

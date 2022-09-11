@@ -1,7 +1,7 @@
 SRC := $(wildcard ./*/*.cpp) $(wildcard ./*.cpp)
 OBJ := $(SRC:.cpp=.o)
 
-CPPFLAGS := -Wno-write-strings 
+CPPFLAGS := -Wno-write-strings -Wno-deprecated-declarations
 LDFLAGS := -lpthread -lavformat -lavcodec -lavutil 
 
 CC = g++
@@ -27,3 +27,4 @@ run: build
 
 static: ${OBJ}
 	${CC} ${LDFLAGS} ${CPPFLAGS} ${OBJ} -o fv1_transcode -static
+
