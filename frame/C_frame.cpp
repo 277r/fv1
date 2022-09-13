@@ -19,6 +19,139 @@ struct C_FRAME_MEM
 	int size;
 };
 
+/*
+	x: the output fv1 file
+	C_FRAME_MEM: the frame
+	pointer_count: the max amount of offsets, normal amount should be set to 1 or 2,
+	higher value will speed up multithreaded decoding but uses more disk space
+	higher values will also do this rapidly, up to 4^offset_count change in muxing data that isn't neccesary 
+*/
+unsigned long long output_c_frame(std::ofstream &x, C_FRAME_MEM *p, int offset_count)
+{
+	int total_size = 0;
+
+	if (offset_count == 0)
+	{
+
+		// write info byte
+		x.write(&p->info, sizeof(char));
+		total_size += sizeof(char);
+
+		// change
+		if (p->info == 1)
+		{
+			x.write((const char *)p->data, p->size);
+			total_size += p->size;
+		}
+		// no change
+		else if (p->info == 0)
+		{
+		}
+		// split h,v
+		else if (p->info == 0b10 || p->info == 0b11)
+		{
+			total_size += output_c_frame(x, p->lt, 0);
+			total_size += output_c_frame(x, p->rb, 0);
+		}
+		// split 4 way
+		else if (p->info == 0b100)
+		{
+			total_size += output_c_frame(x, p->lt, 0);
+			total_size += output_c_frame(x, p->rt, 0);
+			total_size += output_c_frame(x, p->lb, 0);
+			total_size += output_c_frame(x, p->rb, 0);
+		}
+	}
+
+	else {
+		
+		// for the 2 cases where there is nothing to split, just normally output since that saves 8 bytes
+		// basically the same blocks as above for 0 and 1, but also containing the writing of the info byte
+		if (p->info == 0){
+
+			x.write(&p->info, sizeof(char));
+			total_size += sizeof(char);
+			return total_size;
+		}
+		else if (p->info == 1){
+
+			x.write(&p->info, sizeof(char));
+			total_size += sizeof(char);
+			x.write((const char *)p->data, p->size);
+			total_size += p->size;
+			return total_size;
+
+		}
+
+		
+		else {
+			// set bit that tells the decoder there are offsets stored to the frames
+			char c = p->info | 0b1000; 
+			x.write(&c, sizeof(char));
+			total_size += 1;
+
+			unsigned long long file_offset_position = x.tellp();
+			// just used to write zeros
+			unsigned long long d = 0;
+
+			if (p->info == 0b10 || p->info == 0b11){
+				// 2 offsets
+				x.write((const char*)&d, sizeof(unsigned long long));
+				x.write((const char*)&d, sizeof(unsigned long long));
+				
+				// write data
+				unsigned long long size1 = output_c_frame(x, p->lt, offset_count - 1);
+				unsigned long long size2 = size1 + output_c_frame(x, p->rb, offset_count - 1);
+
+
+
+				total_size += size2;
+				x.seekp(file_offset_position);
+				x.write((const char*)&size1, sizeof(unsigned long long));
+				x.write((const char*)&size2, sizeof(unsigned long long));
+				x.seekp(file_offset_position + 2 * sizeof(unsigned long long) + size1 + size2);
+
+			}
+
+			else if (p->info == 0b100){
+				// 4 offsets
+				x.write((const char*)&d, sizeof(unsigned long long));
+				x.write((const char*)&d, sizeof(unsigned long long));
+				x.write((const char*)&d, sizeof(unsigned long long));
+				x.write((const char*)&d, sizeof(unsigned long long));
+
+				// write data
+				// reason that size2 = size1 ... and size3 = size2 ... is so that the offsets become relative to the location in the file where file_offset_position points to, instead of being relative to eachother
+				unsigned long long size1 = output_c_frame(x, p->lt, offset_count - 1);
+				unsigned long long size2 = size1 + output_c_frame(x, p->rt, offset_count - 1);
+				unsigned long long size3 = size2 + output_c_frame(x, p->lb, offset_count - 1);
+				unsigned long long size4 = size3 + output_c_frame(x, p->rb, offset_count - 1);
+
+				total_size += size4;
+				x.seekp(file_offset_position);
+				x.write((const char*)&size1, sizeof(unsigned long long));
+				x.write((const char*)&size2, sizeof(unsigned long long));
+				x.write((const char*)&size3, sizeof(unsigned long long));
+				x.write((const char*)&size4, sizeof(unsigned long long));
+				x.seekp(file_offset_position + 4 * sizeof(unsigned long long) + size1 + size2 + size3 + size4);
+
+			}
+
+		}
+		
+		
+		
+		
+	
+
+
+
+	}
+
+	return total_size;
+
+}
+
 void free_c_frame_mem_tree(C_FRAME_MEM *p)
 {
 	// delete all subdata recursively
@@ -59,7 +192,7 @@ void *encode_block(FV1_HEADER info, AVFrame *in, int xbpos, int ybpos, int &size
 	// later, use transforms and quantization instead, so those need to return size too;
 
 	if (info.pix_fmt == AVPixelFormat::AV_PIX_FMT_YUV420P)
-	{	
+	{
 		// max size for 8 bit yuv 420p video
 		unsigned char *retdata = new unsigned char[16 * 16 + 8 * 8 + 8 * 8];
 		int retdata_pos = 0;
@@ -123,7 +256,7 @@ C_FRAME_MEM *combine_2_blocks(C_FRAME_MEM *plt, C_FRAME_MEM *prb, int split_dire
 	// if all parts are just raw data, just store the raw data, the decoder will know how to figure out where to place what data based on the recursion level and current position in the decoding function
 	if (plt->info == 1 && prb->info == 1)
 	{
-		
+
 		// can be optimized
 		// allocate data for both sizes combined
 		ret->size = plt->size + prb->size;
@@ -136,10 +269,9 @@ C_FRAME_MEM *combine_2_blocks(C_FRAME_MEM *plt, C_FRAME_MEM *prb, int split_dire
 		free(prb->data);
 		delete[] plt;
 		delete[] prb;
-		
+
 		ret->info = 0b00000001;
 		return ret;
-
 	}
 
 	else if (plt->info == 0 && prb->info == 0)
@@ -158,7 +290,7 @@ C_FRAME_MEM *combine_2_blocks(C_FRAME_MEM *plt, C_FRAME_MEM *prb, int split_dire
 		ret->info = split_direction;
 		ret->lt = plt;
 		ret->rb = prb;
-		
+
 		return ret;
 	}
 }
@@ -249,7 +381,6 @@ C_FRAME_MEM *create_tree_and_encode(FV1_HEADER info, AVFrame *in, bool **diff_ta
 		prt = create_tree_and_encode(info, in, diff_table, xstart + new_xlen, ystart, new_xlen2, new_ylen);
 		plb = create_tree_and_encode(info, in, diff_table, xstart, ystart + new_ylen, new_xlen, new_ylen2);
 		prb = create_tree_and_encode(info, in, diff_table, xstart + new_xlen, ystart + new_ylen, new_xlen2, new_ylen2);
-
 	}
 	// check parts after receiving results, combine if possible
 
@@ -286,10 +417,10 @@ C_FRAME_MEM *create_tree_and_encode(FV1_HEADER info, AVFrame *in, bool **diff_ta
 		if (plt->info == 1 && prt->info == 1 && plb->info == 1 && prb->info == 1)
 		{
 
-			std::cout << "data: " << plt->data << ", " << prt->data << ", " << plb->data << ", " << prb->data << std::endl ;
-			std::cout << "sizes: " << plt->size << ", " << prt->size << ", " << plb->size << ", " << prb->size << std::endl ;
-			std::cout << "info: " << (int) plt->info << ", " <<  (int)prt->info << ", " <<  (int)plb->info << ", " <<  (int)prb->info << std::endl ;
-			
+			std::cout << "data: " << plt->data << ", " << prt->data << ", " << plb->data << ", " << prb->data << std::endl;
+			std::cout << "sizes: " << plt->size << ", " << prt->size << ", " << plb->size << ", " << prb->size << std::endl;
+			std::cout << "info: " << (int)plt->info << ", " << (int)prt->info << ", " << (int)plb->info << ", " << (int)prb->info << std::endl;
+
 			// can be optimized
 			// allocate data for all sizes combined
 			ret->data = new unsigned char[plt->size + prt->size + plb->size + prb->size];
@@ -312,7 +443,6 @@ C_FRAME_MEM *create_tree_and_encode(FV1_HEADER info, AVFrame *in, bool **diff_ta
 			ret->info = 0b00000001;
 			return ret;
 		}
-
 
 		// vertical check (left side 00, left side 11, right side 00, right side 11)
 		if (plt->info == 0 && plb->info == 0)
